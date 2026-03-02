@@ -2386,27 +2386,52 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         throw lastException ?: IllegalStateException(errorMessage)
     }
 
-    @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
-    @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
-    fun connectToSocket(device: BluetoothDevice, manual: Boolean = false) {
-        Log.d(TAG, "BLE-only mode active ? skipping L2CAP socket connection")
-        this.device = device
-        isConnectedLocally = true
-        updateNotificationContent(
-            true,
-            config.deviceName,
-            batteryNotification.getBattery()
-        )
+@SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
+fun connectToSocket(device: BluetoothDevice, manual: Boolean = false) {
+    Log.d(TAG, "BLE-only mode active — skipping L2CAP socket connection")
+
+    this.device = device
+    isConnectedLocally = true
+
+    updateNotificationContent(
+        true,
+        config.deviceName,
+        batteryNotification.getBattery()
+    )
+}
+
+fun disconnectForCD() {
+    if (!this::socket.isInitialized) {
+        Log.d(TAG, "Socket not initialized, skipping disconnect.")
+        return
     }
-    fun disconnectForCD() {
-        if (!this::socket.isInitialized) return
+
+    try {
         socket.close()
-        MediaController.pausedWhileTakingOver = false
-        Log.d(TAG, "Disconnected from AirPods, showing island.")
-        showIsland(this, batteryNotification.getBattery().find { it.component == BatteryComponent.LEFT}?.level!!.coerceAtMost(batteryNotification.getBattery().find { it.component == BatteryComponent.RIGHT}?.level!!),
-            IslandType.MOVED_TO_REMOTE)
-        val bluetoothAdapter = getSystemService(BluetoothManager::class.java).adapter
-        bluetoothAdapter.getProfileProxy(this, object : BluetoothProfile.ServiceListener {
+        Log.d(TAG, "Socket closed successfully.")
+    } catch (e: Exception) {
+        Log.e(TAG, "Error closing socket: ${e.message}")
+    }
+
+    MediaController.pausedWhileTakingOver = false
+
+    Log.d(TAG, "Disconnected from AirPods, showing island.")
+
+    val battery = batteryNotification.getBattery()
+    val left = battery.find { it.component == BatteryComponent.LEFT }?.level ?: 0
+    val right = battery.find { it.component == BatteryComponent.RIGHT }?.level ?: 0
+
+    showIsland(
+        this,
+        left.coerceAtMost(right),
+        IslandType.MOVED_TO_REMOTE
+    )
+
+    val bluetoothAdapter = getSystemService(BluetoothManager::class.java).adapter
+
+    bluetoothAdapter.getProfileProxy(
+        this,
+        object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
                 if (profile == BluetoothProfile.A2DP) {
                     val connectedDevices = proxy.connectedDevices
@@ -2418,10 +2443,12 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             }
 
             override fun onServiceDisconnected(profile: Int) {}
-        }, BluetoothProfile.A2DP)
-        isConnectedLocally = false
-//        CrossDevice.isAvailable = true
-    }
+        },
+        BluetoothProfile.A2DP
+    )
+
+    isConnectedLocally = false
+}
 
     fun disconnectAirPods() {
         if (!this::socket.isInitialized) return
