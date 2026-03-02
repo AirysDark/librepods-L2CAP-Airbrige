@@ -1,4 +1,4 @@
-name: Build APK and root module (and create nightly release)
+name: updatedworkflow
 
 on:
   push:
