@@ -56,6 +56,19 @@ jobs:
         with:
           name: Magisk-Module
           path: btl2capfix.zip
+          if-no-files-found: error        uses: actions/upload-artifact@v4
+        with:
+          name: Build-Log
+          path: android/build-logs/log.txt
+
+      - name: Build Magisk Module
+        run: sh ./build-magisk-module.sh
+
+      - name: Upload Magisk Module
+        uses: actions/upload-artifact@v4
+        with:
+          name: Magisk-Module
+          path: btl2capfix.zip
           if-no-files-found: error          path: android/app/build/outputs/apk/**/*.apk
 
       - name: Upload Build Log
