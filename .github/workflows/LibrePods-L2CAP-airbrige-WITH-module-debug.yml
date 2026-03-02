@@ -6,7 +6,6 @@ on:
       - '*'
     paths:
       - 'android/**'
-
   workflow_dispatch:
     inputs:
       release:
@@ -20,7 +19,7 @@ on:
         type: string
 
 jobs:
-  build:
+  build-debug-apk:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,30 +34,62 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Build APK + capture log
-      - name: Build Debug APK
+      - name: Build debug APK with log capture
         working-directory: android
         run: |
           mkdir -p build-logs
           ./gradlew assembleDebug --stacktrace --info 2>&1 | tee build-logs/log.txt
 
-      # Upload APK artifact
-      - name: Upload APK Artifact
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Debug-APK
           path: android/app/build/outputs/apk/**/*.apk
 
-      # Upload Build Log artifact
-      - name: Upload Build Log
+      - name: Upload build log artifact
         uses: actions/upload-artifact@v4
         with:
           name: Build-Log
           path: android/build-logs/log.txt
 
-      # Build Magisk module (ZIP)
-      - name: Build Magisk Module
+  nightly-release:
+    runs-on: ubuntu-latest
+    needs: build-debug-apk
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Debug-APK
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Build-Log
+          path: ./logs
+
+      - name: Export APK_NAME
+        run: echo "APK_NAME=LibrePods-$(echo ${{ github.sha }} | cut -c1-7).apk" >> $GITHUB_ENV
+
+      - name: Rename APK
+        run: |
+          APK_PATH=$(find . -name "*.apk" | head -n 1)
+          mv "$APK_PATH" "./$APK_NAME"
+
+      - name: Build Magisk module
         run: sh ./build-magisk-module.sh
+
+      - name: Create or update nightly release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view nightly && gh release delete nightly -y --cleanup-tag || true
+          gh release create nightly "./$APK_NAME" "./btl2capfix.zip" "./logs/log.txt" \
+            -p -t "Nightly Release" \
+            --generate-notes        run: sh ./build-magisk-module.sh
 
       # Upload module zip as artifact
       - name: Upload Magisk Module Artifact
