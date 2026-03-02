@@ -1,0 +1,52 @@
+name: LibrePods-L2CAP-airbrige-WITH-module-debug
+
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - 'android/**'
+  workflow_dispatch:
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Debug APK
+        working-directory: android
+        run: |
+          mkdir -p build-logs
+          ./gradlew assembleDebug --stacktrace --info 2>&1 | tee build-logs/log.txt
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Debug-APK
+          path: android/app/build/outputs/apk/**/*.apk
+
+      - name: Upload Build Log
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-Log
+          path: android/build-logs/log.txt
+
+      - name: Build Magisk Module
+        run: sh ./build-magisk-module.sh
+
+      - name: Upload Magisk Module
+        uses: actions/upload-artifact@v4
+        with:
+          name: Magisk-Module
+          path: btl2capfix.zip
