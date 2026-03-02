@@ -2401,31 +2401,50 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         throw lastException ?: IllegalStateException(errorMessage)
     }
 
-    @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
-    @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
-    fun connectToSocket(device: BluetoothDevice, manual: Boolean = false) {
-        Log.d(TAG, "BLE-only mode active ? skipping L2CAP socket connection")
-        this.device = device
-        isConnectedLocally = true
-        updateNotificationContent(
-            true,
-            config.deviceName,
-            batteryNotification.getBattery()
-        )
+@SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
+fun connectToSocket(device: BluetoothDevice, manual: Boolean = false) {
+    Log.d(TAG, "BLE-only mode active — skipping L2CAP socket connection")
+
+    this.device = device
+    isConnectedLocally = true
+
+    updateNotificationContent(
+        true,
+        config.deviceName,
+        batteryNotification.getBattery()
+    )
+}
+
+fun disconnectForCD() {
+    if (!this::socket.isInitialized) {
+        Log.d(TAG, "Socket not initialized, skipping disconnect.")
+        return
     }
+<<<<<<< HEAD
 fun disconnectForCD() {
 
     if (socket == null) return
 
     try {
         socket?.close()
+=======
+
+    try {
+        socket.close()
+        Log.d(TAG, "Socket closed successfully.")
+>>>>>>> 05155984db22baa1dc9b8be65e9fb6dde492f598
     } catch (e: Exception) {
         Log.e(TAG, "Error closing socket: ${e.message}")
     }
 
+<<<<<<< HEAD
     socket = null
 
     MediaController.pausedWhileTakingOver = false
+=======
+    MediaController.pausedWhileTakingOver = false
+
+>>>>>>> 05155984db22baa1dc9b8be65e9fb6dde492f598
     Log.d(TAG, "Disconnected from AirPods, showing island.")
 
     val battery = batteryNotification.getBattery()
@@ -2459,6 +2478,7 @@ fun disconnectForCD() {
 
     isConnectedLocally = false
 }
+<<<<<<< HEAD
 
 
 fun disconnectAirPods() {
@@ -2470,6 +2490,8 @@ fun disconnectAirPods() {
     } catch (e: Exception) {
         Log.e(TAG, "Error closing socket: ${e.message}")
     }
+=======
+>>>>>>> 05155984db22baa1dc9b8be65e9fb6dde492f598
 
     socket = null
 
