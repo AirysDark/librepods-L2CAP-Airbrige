@@ -37,29 +37,41 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android SDK components
+        run: |
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-34"
+          sdkmanager "build-tools;34.0.0"
+
       - name: Accept SDK licenses
         run: yes | sdkmanager --licenses
 
       - name: Setup Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Verify gradlew exists
+        run: |
+          ls -la android/gradlew
+          chmod +x android/gradlew
+
       - name: Build debug APK with log capture
         working-directory: android
         run: |
           mkdir -p build-logs
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --info 2>&1 | tee build-logs/log.txt
+          ./gradlew assembleDebug --stacktrace --info | tee build-logs/log.txt
 
-      - name: Locate generated APK
+      - name: Verify APK generated
         id: find_apk
         run: |
           APK_PATH=$(find android -type f -name "*debug*.apk" | head -n 1)
           if [ -z "$APK_PATH" ]; then
             echo "❌ No APK found!"
+            echo "===== OUTPUT TREE ====="
+            find android -type d -name outputs || true
             exit 1
           fi
           echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
-          echo "Found APK at: $APK_PATH"
+          echo "Found APK: $APK_PATH"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -83,6 +95,7 @@ jobs:
         with:
           name: magisk-module
           path: btl2capfix.zip
+
 
   nightly-release:
     runs-on: ubuntu-latest
