@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-debug-apk:
+  build-debug:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,11 +30,26 @@ jobs:
           mkdir -p build-logs
           ./gradlew assembleDebug --stacktrace --info 2>&1 | tee build-logs/log.txt
 
-      - name: Upload APK artifact
+      - name: Build Magisk Module ZIP
+        run: chmod +x build-magisk-module.sh && ./build-magisk-module.sh
+
+      - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Debug APK
           path: android/app/build/outputs/apk/**/*.apk
+
+      - name: Upload Magisk Module artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Magisk Module
+          path: btl2capfix.zip
+
+      - name: Upload Build Log artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build Log
+          path: android/build-logs/log.txt          path: android/app/build/outputs/apk/**/*.apk
 
       - name: Upload build log artifact
         uses: actions/upload-artifact@v4
