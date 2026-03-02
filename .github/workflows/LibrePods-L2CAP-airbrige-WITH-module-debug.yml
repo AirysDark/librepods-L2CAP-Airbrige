@@ -17,7 +17,6 @@ on:
         description: "Custom updates to add to What's Changed section"
         required: false
         type: string
-  workflow_call:
 
 jobs:
   build-debug-apk:
@@ -55,8 +54,8 @@ jobs:
 
   nightly-release:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/release-nightly' || github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true'
     needs: build-debug-apk
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true'
     permissions:
       contents: write
 
@@ -79,31 +78,6 @@ jobs:
         run: |
           APK_PATH=$(find . -name "*.apk" | head -n 1)
           mv "$APK_PATH" "./$APK_NAME"
-
-      - name: Fetch latest non-nightly tag
-        id: fetch-tag
-        run: echo "tag=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
-
-      - name: Retrieve commits since last release
-        id: get-commits
-        run: |
-          if [ -n "${{ steps.fetch-tag.outputs.tag }}" ]; then
-            COMMITS=$(git log ${{ steps.fetch-tag.outputs.tag }}..HEAD --pretty=format:"- %s (%h)")
-          else
-            COMMITS=$(git log -n 10 --pretty=format:"- %s (%h)")
-          fi
-          echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Prepare release notes
-        id: release-notes
-        run: |
-          NOTES_FILE=$(mktemp)
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.custom_notes }}" ]; then
-            echo "- ${{ github.event.inputs.custom_notes }}" > "$NOTES_FILE"
-          fi
-          echo "notes_file=$NOTES_FILE" >> $GITHUB_OUTPUT
 
       - name: Zip root-module directory
         run: sh ./build-magisk-module.sh
@@ -115,191 +89,4 @@ jobs:
           gh release view nightly && gh release delete nightly -y --cleanup-tag || true
           gh release create nightly "./$APK_NAME" "./btl2capfix.zip" "./logs/log.txt" \
             -p -t "Nightly Release" \
-            --notes-file "${{ steps.release-notes.outputs.notes_file }}" \
-            --generate-notes
-      - name: Build debug APK with log capture
-        working-directory: android
-        run: |
-          mkdir -p build-logs
-          ./gradlew assembleDebug --stacktrace --info 2>&1 | tee build-logs/log.txt
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Debug APK
-          path: android/app/build/outputs/apk/**/*.apk
-
-      - name: Upload build log artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Build Log
-          path: android/build-logs/log.txt
-
-  nightly-release:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/release-nightly' || github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true'
-    needs: build-debug-apk
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: Debug APK
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: Build Log
-          path: ./logs
-
-      - name: Export APK_NAME
-        run: echo "APK_NAME=LibrePods-$(echo ${{ github.sha }} | cut -c1-7).apk" >> $GITHUB_ENV
-
-      - name: Rename APK
-        run: |
-          APK_PATH=$(find . -name "*.apk" | head -n 1)
-          mv "$APK_PATH" "./$APK_NAME"
-
-      - name: Fetch latest non-nightly tag
-        id: fetch-tag
-        run: echo "tag=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
-
-      - name: Retrieve commits since last release
-        id: get-commits
-        run: |
-          if [ -n "${{ steps.fetch-tag.outputs.tag }}" ]; then
-            COMMITS=$(git log ${{ steps.fetch-tag.outputs.tag }}..HEAD --pretty=format:"- %s (%h)")
-          else
-            COMMITS=$(git log -n 10 --pretty=format:"- %s (%h)")
-          fi
-          echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Prepare release notes
-        id: release-notes
-        run: |
-          NOTES_FILE=$(mktemp)
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.custom_notes }}" ]; then
-            echo "- ${{ github.event.inputs.custom_notes }}" > "$NOTES_FILE"
-          fi
-          echo "notes_file=$NOTES_FILE" >> $GITHUB_OUTPUT
-
-      - name: Zip root-module directory
-        run: sh ./build-magisk-module.sh
-
-      - name: Create or update nightly release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view "nightly" && gh release delete "nightly" -y --cleanup-tag || true
-          gh release create "nightly" "./$APK_NAME" "./btl2capfix.zip" "./logs/log.txt" \
-            -p -t "Nightly Release" \
-            --notes-file "${{ steps.release-notes.outputs.notes_file }}" \
-            --generate-notes        uses: actions/upload-artifact@v4
-        with:
-          name: Debug APK
-          path: android/app/build/outputs/apk/**/*.apk
-
-      - name: Upload Magisk Module artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Magisk Module
-          path: btl2capfix.zip
-
-      - name: Upload Build Log artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Build Log
-          path: android/build-logs/log.txt          path: android/app/build/outputs/apk/**/*.apk
-
-      - name: Upload build log artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Build Log
-          path: android/build-logs/log.txt
-      - name: Build debug APK with log capture
-        working-directory: android
-        run: |
-          mkdir -p build-logs
-          ./gradlew assembleDebug --stacktrace --info 2>&1 | tee build-logs/log.txt
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Debug APK
-          path: android/app/build/outputs/apk/**/*.apk
-
-      - name: Upload build log artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Build Log
-          path: android/build-logs/log.txt
-
-
-  nightly-release:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/release-nightly' || github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true'
-    needs: build-debug-apk
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: Debug APK
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: Build Log
-          path: ./logs
-
-      - name: Export APK_NAME
-        run: echo "APK_NAME=LibrePods-$(echo ${{ github.sha }} | cut -c1-7).apk" >> $GITHUB_ENV
-
-      - name: Rename APK
-        run: |
-          APK_PATH=$(find . -name "*.apk" | head -n 1)
-          mv "$APK_PATH" "./$APK_NAME"
-
-      - name: Fetch latest non-nightly tag
-        id: fetch-tag
-        run: echo "tag=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
-
-      - name: Retrieve commits since last release
-        id: get-commits
-        run: |
-          if [ -n "${{ steps.fetch-tag.outputs.tag }}" ]; then
-            COMMITS=$(git log ${{ steps.fetch-tag.outputs.tag }}..HEAD --pretty=format:"- %s (%h)")
-          else
-            COMMITS=$(git log -n 10 --pretty=format:"- %s (%h)")
-          fi
-          echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Prepare release notes
-        id: release-notes
-        run: |
-          NOTES_FILE=$(mktemp)
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.custom_notes }}" ]; then
-            echo "- ${{ github.event.inputs.custom_notes }}" > "$NOTES_FILE"
-          fi
-          echo "notes_file=$NOTES_FILE" >> $GITHUB_OUTPUT
-
-      - name: Zip root-module directory
-        run: sh ./build-magisk-module.sh
-
-      - name: Create or update nightly release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view "nightly" && gh release delete "nightly" -y --cleanup-tag || true
-          gh release create "nightly" "./$APK_NAME" "./btl2capfix.zip" "./logs/log.txt" \
-            -p -t "Nightly Release" \
-            --notes-file "${{ steps.release-notes.outputs.notes_file }}" \
             --generate-notes
