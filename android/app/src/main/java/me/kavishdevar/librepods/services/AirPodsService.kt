@@ -2416,35 +2416,22 @@ fun connectToSocket(device: BluetoothDevice, manual: Boolean = false) {
 }
 
 fun disconnectForCD() {
-    if (!this::socket.isInitialized) {
+
+    if (socket == null) {
         Log.d(TAG, "Socket not initialized, skipping disconnect.")
         return
     }
-<<<<<<< HEAD
-fun disconnectForCD() {
-
-    if (socket == null) return
 
     try {
         socket?.close()
-=======
-
-    try {
-        socket.close()
         Log.d(TAG, "Socket closed successfully.")
->>>>>>> 05155984db22baa1dc9b8be65e9fb6dde492f598
     } catch (e: Exception) {
         Log.e(TAG, "Error closing socket: ${e.message}")
     }
 
-<<<<<<< HEAD
     socket = null
 
     MediaController.pausedWhileTakingOver = false
-=======
-    MediaController.pausedWhileTakingOver = false
-
->>>>>>> 05155984db22baa1dc9b8be65e9fb6dde492f598
     Log.d(TAG, "Disconnected from AirPods, showing island.")
 
     val battery = batteryNotification.getBattery()
@@ -2456,6 +2443,7 @@ fun disconnectForCD() {
         left.coerceAtMost(right),
         IslandType.MOVED_TO_REMOTE
     )
+}
 
     val bluetoothAdapter = getSystemService(BluetoothManager::class.java).adapter
 
@@ -2477,10 +2465,6 @@ fun disconnectForCD() {
     )
 
     isConnectedLocally = false
-}
-<<<<<<< HEAD
-
-
 fun disconnectAirPods() {
 
     if (socket == null) return
@@ -2490,8 +2474,6 @@ fun disconnectAirPods() {
     } catch (e: Exception) {
         Log.e(TAG, "Error closing socket: ${e.message}")
     }
-=======
->>>>>>> 05155984db22baa1dc9b8be65e9fb6dde492f598
 
     socket = null
 
