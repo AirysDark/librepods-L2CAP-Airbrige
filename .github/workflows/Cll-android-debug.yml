@@ -7,17 +7,6 @@ on:
     paths:
       - 'android/**'
   workflow_dispatch:
-    inputs:
-      release:
-        description: 'Create a nightly release'
-        required: true
-        type: boolean
-        default: false
-      custom_notes:
-        description: 'Custom updates to add to What''s Changed section'
-        required: false
-        type: string
-  workflow_call:
 
 jobs:
   build-debug-apk:
@@ -35,6 +24,23 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Build debug APK with log capture
+        working-directory: android
+        run: |
+          mkdir -p build-logs
+          ./gradlew assembleDebug --stacktrace --info 2>&1 | tee build-logs/log.txt
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Debug APK
+          path: android/app/build/outputs/apk/**/*.apk
+
+      - name: Upload build log artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build Log
+          path: android/build-logs/log.txt
       - name: Build debug APK with log capture
         working-directory: android
         run: |
