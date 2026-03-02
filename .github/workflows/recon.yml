@@ -1,0 +1,61 @@
+name: Deep Recon Scan
+
+on:
+  workflow_dispatch:
+
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Run Recon Scan
+        run: |
+          echo "=========================================" > recon.txt
+          echo " LibrePods Full Recon Report" >> recon.txt
+          echo "=========================================" >> recon.txt
+
+          echo -e "\n=== ROOT STRUCTURE ===" >> recon.txt
+          ls -la >> recon.txt
+
+          if [ -d "android" ]; then
+            echo -e "\n=== ANDROID DIRECTORY (Depth 2) ===" >> recon.txt
+            find android -maxdepth 2 >> recon.txt
+          fi
+
+          echo -e "\n=== settings.gradle(.kts) ===" >> recon.txt
+          find . -name "settings.gradle*" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> recon.txt
+
+          echo -e "\n=== AndroidManifest.xml Locations ===" >> recon.txt
+          find . -name "AndroidManifest.xml" >> recon.txt
+
+          echo -e "\n=== build.gradle(.kts) Files ===" >> recon.txt
+          find . -name "build.gradle*" >> recon.txt
+
+          echo -e "\n=== SEARCH: L2CAP ===" >> recon.txt
+          grep -Rni "l2cap" . >> recon.txt || true
+
+          echo -e "\n=== SEARCH: createL2cap ===" >> recon.txt
+          grep -Rni "createL2cap" . >> recon.txt || true
+
+          echo -e "\n=== SEARCH: BluetoothSocket ===" >> recon.txt
+          grep -Rni "BluetoothSocket" . >> recon.txt || true
+
+          echo -e "\n=== SEARCH: PSM ===" >> recon.txt
+          grep -Rni "psm" . >> recon.txt || true
+
+          echo -e "\n=== SEARCH: android.bluetooth imports ===" >> recon.txt
+          grep -Rni "android.bluetooth" . >> recon.txt || true
+
+          echo -e "\n=========================================" >> recon.txt
+          echo " Recon Complete" >> recon.txt
+          echo "=========================================" >> recon.txt
+
+      - name: Upload Recon Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: recon-report
+          path: recon.txt
