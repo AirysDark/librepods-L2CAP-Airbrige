@@ -32,10 +32,8 @@ jobs:
           distribution: zulu
           java-version: 21
 
-      # 🔥 Install Android SDK
       - uses: android-actions/setup-android@v3
 
-      # 🔥 Install required SDK components (INCLUDING NDK + CMAKE)
       - name: Install Android SDK + NDK + CMake
         run: |
           sdkmanager "platform-tools"
@@ -47,22 +45,20 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # 🔥 Build with full log capture
+      # 🔥 Build from explicit path (NO working-directory)
       - name: Build debug APK with full log capture
-        working-directory: android
         run: |
-          mkdir -p build-logs
-          chmod +x gradlew
+          mkdir -p android/build-logs
+          chmod +x android/gradlew
 
           set +e
-          ./gradlew assembleDebug --stacktrace --info > build-logs/build.log 2>&1
+          ./android/gradlew assembleDebug --stacktrace --info > android/build-logs/build.log 2>&1
           EXIT_CODE=$?
           set -e
 
           echo "GRADLE_EXIT_CODE=$EXIT_CODE" >> $GITHUB_ENV
           exit 0
 
-      # ✅ Always upload build log
       - name: Upload build log artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -70,14 +66,12 @@ jobs:
           name: build-log
           path: android/build-logs/build.log
 
-      # ❌ Fail job properly if Gradle failed
       - name: Fail job if Gradle failed
         if: env.GRADLE_EXIT_CODE != '0'
         run: |
           echo "Gradle failed. See build-log artifact."
           exit 1
 
-      # Only runs if build succeeded
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
