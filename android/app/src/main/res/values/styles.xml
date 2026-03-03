@@ -1,6 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-  <style name="Widget.LibrePods.AppWidget.Container" parent="android:Widget"></style>
+    <!-- AppWidget container style -->
+    <style name="Widget.LibrePods.AppWidget.Container" parent="Theme.Material3.DayNight">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
 
-  <style name="Widget.LibrePods.AppWidget.InnerView" parent="android:Widget"></style>
+    <!-- AppWidget inner view style -->
+    <style name="Widget.LibrePods.AppWidget.InnerView" parent="Theme.Material3.DayNight">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
 </resources>
