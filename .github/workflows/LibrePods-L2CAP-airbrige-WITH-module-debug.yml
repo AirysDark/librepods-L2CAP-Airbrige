@@ -39,7 +39,7 @@ jobs:
       - name: Install Android SDK + NDK + CMake
         run: |
           sdkmanager "platform-tools"
-          sdkmanager "platforms;android-36"
+          sdkmanager "platforms;android-37"
           sdkmanager "build-tools;36.0.0"
           sdkmanager "ndk;26.3.11579264"
           sdkmanager "cmake;3.22.1"
