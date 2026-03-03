@@ -100,3 +100,10 @@ jobs:
             -p \
             -t "Nightly Release" \
             --generate-notes
+
+                  - name: Print output tree
+          run: |
+           echo "=== APK FILES ==="
+           find android -name "*.apk"
+           echo "=== ZIP FILES ==="
+           find . -name "*.zip"
