@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "me.kavishdevar.librepods"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "me.kavishdevar.librepods"
         minSdk = 33
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 9
         versionName = "0.2.0"
     }
