@@ -10,6 +10,8 @@ android {
     namespace = "me.kavishdevar.librepods"
     compileSdk = 36
 
+    ndkVersion = "26.3.11579264"
+
     defaultConfig {
         applicationId = "me.kavishdevar.librepods"
         minSdk = 33
