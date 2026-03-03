@@ -2427,7 +2427,7 @@ fun disconnectForCD() {
         Log.d(TAG, "Socket closed successfully.")
     } catch (e: Exception) {
         Log.e(TAG, "Error closing socket: ${e.message}")
-    }
+}
 
     socket = null
 
@@ -2445,7 +2445,12 @@ fun disconnectForCD() {
     )
 }
 
-    val bluetoothAdapter = getSystemService(BluetoothManager::class.java).adapter
+/* ---- FIXED: moved stray executable code into a function ---- */
+
+private fun pauseRemoteA2dpIfConnected() {
+
+    val bluetoothAdapter =
+        getSystemService(BluetoothManager::class.java).adapter
 
     bluetoothAdapter.getProfileProxy(
         this,
@@ -2465,6 +2470,10 @@ fun disconnectForCD() {
     )
 
     isConnectedLocally = false
+}
+
+/* ------------------------------------------------------------ */
+
 fun disconnectAirPods() {
 
     if (socket == null) return
@@ -2476,8 +2485,8 @@ fun disconnectAirPods() {
     }
 
     socket = null
-
     isConnectedLocally = false
+}
     aacpManager.disconnected()
     attManager?.disconnect()
     updateNotificationContent(false)
