@@ -15,7 +15,7 @@ android {
         minSdk = 33
         targetSdk = 36
 
-        // 🔥 CI VERSION INJECTION SUPPORT
+        // CI version injection
         val ciVersionCode = project.findProperty("ciVersionCode")?.toString()?.toIntOrNull()
         val ciVersionName = project.findProperty("ciVersionName")?.toString()
 
@@ -25,11 +25,20 @@ android {
 
     signingConfigs {
         create("release") {
-            if (System.getenv("CI") == "true") {
-                storeFile = file(System.getenv("KEYSTORE_FILE"))
-                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            val keystorePath = System.getenv("KEYSTORE_FILE")
+            val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            val keyAliasEnv = System.getenv("ANDROID_KEY_ALIAS")
+            val keyPasswordEnv = System.getenv("ANDROID_KEY_PASSWORD")
+
+            if (!keystorePath.isNullOrBlank() &&
+                !keystorePassword.isNullOrBlank() &&
+                !keyAliasEnv.isNullOrBlank() &&
+                !keyPasswordEnv.isNullOrBlank()
+            ) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keyAliasEnv
+                keyPassword = keyPasswordEnv
             }
         }
     }
@@ -42,7 +51,11 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+
+            // Only attach signing if keystore exists
+            if (signingConfigs.getByName("release").storeFile != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -113,10 +126,8 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // Xposed
     compileOnly(files("libs/libxposed-api-100.aar"))
 
-    // Backdrop
     debugImplementation(files("libs/backdrop-debug.aar"))
     releaseImplementation(files("libs/backdrop-release.aar"))
 }
