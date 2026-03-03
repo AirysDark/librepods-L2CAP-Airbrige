@@ -1,98 +1,97 @@
-/*
-    LibrePods - AirPods liberated from Apple’s ecosystem
-    Copyright (C) 2025 LibrePods contributors
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
-@file:OptIn(ExperimentalEncodingApi::class)
-
 package me.kavishdevar.librepods.services
 
-
-import android.accessibilityservice.AccessibilityService
-import android.util.Log
-import android.view.accessibility.AccessibilityEvent
+import android.app.Service
+import android.content.Intent
+import android.content.SharedPreferences
+import android.os.Binder
+import android.os.IBinder
+import kotlinx.coroutines.flow.MutableStateFlow
+import me.kavishdevar.librepods.utils.AACPManager
+import me.kavishdevar.librepods.utils.AirPodsInstance
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-private const val TAG="AppListenerService"
+class AirPodsService : Service(),
+    SharedPreferences.OnSharedPreferenceChangeListener {
 
-val cameraPackages = mutableSetOf(
-    "com.google.android.GoogleCamera",
-    "com.sec.android.app.camera",
-    "com.android.camera",
-    "com.oppo.camera",
-    "com.motorola.camera2",
-    "org.codeaurora.snapcam"
-)
+    /* ==========================
+       Shared State (USED BY ALL MODULE FILES)
+       ========================== */
 
-var cameraOpen = false
-private var currentCustomPackage: String? = null
+    lateinit var aacpManager: AACPManager
+    lateinit var airpodsInstance: AirPodsInstance
 
-class AppListenerService : AccessibilityService() {
-    private lateinit var prefs: android.content.SharedPreferences
-    private val preferenceChangeListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
-        if (key == "custom_camera_package") {
-            val newPackage = sharedPreferences.getString(key, null)
-            currentCustomPackage?.let { cameraPackages.remove(it) }
-            if (newPackage != null && newPackage.isNotBlank()) {
-                cameraPackages.add(newPackage)
-            }
-            currentCustomPackage = newPackage
-        }
+    // Control command state tracking
+    val controlCommandStatusList =
+        MutableStateFlow<Map<Int, ByteArray>>(emptyMap())
+
+    // Packet logs
+    val packetLogsFlow =
+        MutableStateFlow<List<String>>(emptyList())
+
+    // Connection state
+    var isConnectedLocally: Boolean = false
+
+    // Notifications (used in UI modules)
+    var batteryNotification: Any? = null
+    var ancNotification: Any? = null
+    var earDetectionNotification: Any? = null
+    var conversationAwarenessNotification: Any? = null
+
+    /* ==========================
+       Binder
+       ========================== */
+
+    inner class LocalBinder : Binder() {
+        fun getService(): AirPodsService = this@AirPodsService
     }
 
+    private val binder = LocalBinder()
+
+    override fun onBind(intent: Intent?): IBinder {
+        return binder
+    }
+
+    /* ==========================
+       Lifecycle
+       ========================== */
+
+    @OptIn(ExperimentalEncodingApi::class)
     override fun onCreate() {
         super.onCreate()
-        prefs = getSharedPreferences("settings", MODE_PRIVATE)
-        val customPackage = prefs.getString("custom_camera_package", null)
-        if (customPackage != null && customPackage.isNotBlank()) {
-            cameraPackages.add(customPackage)
-            currentCustomPackage = customPackage
-        }
-        prefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+
+        // Register this service instance globally
+        ServiceManager.setService(this)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        prefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
+
+        // Clear global reference
+        ServiceManager.setService(null)
     }
 
-    override fun onAccessibilityEvent(ev: AccessibilityEvent?) {
-        try {
-            if (ev?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-                val pkg = ev.packageName?.toString() ?: return
-                if (pkg == "com.android.systemui") return // after camera opens, systemui is opened, probably for the privacy indicators
-                Log.d(TAG, "Package: $pkg, cameraOpen: $cameraOpen")
-                if (pkg in cameraPackages) {
-                    Log.d(TAG, "Camera app opened: $pkg")
-                    if (!cameraOpen) cameraOpen = true
-                    ServiceManager.getService()?.cameraOpened()
-                } else {
-                    if (cameraOpen) {
-                        cameraOpen = false
-                        ServiceManager.getService()?.cameraClosed()
-                    } else {
-                        Log.d(TAG, "ignoring")
-                    }
-                }
-                // Log.d(TAG, "Opened: $pkg")
-            }
-        } catch(e: Exception) {
-            Log.e(TAG, "Error in onAccessibilityEvent: ${e.message}")
-        }
+    override fun onSharedPreferenceChanged(
+        sharedPreferences: SharedPreferences?,
+        key: String?
+    ) {
+        // Handled in modules
+    }
+}
+
+object ServiceManager {
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private var service: AirPodsService? = null
+
+    @OptIn(ExperimentalEncodingApi::class)
+    @Synchronized
+    fun getService(): AirPodsService? {
+        return service
     }
 
-    override fun onInterrupt() {}
+    @OptIn(ExperimentalEncodingApi::class)
+    @Synchronized
+    fun setService(service: AirPodsService?) {
+        this.service = service
+    }
 }

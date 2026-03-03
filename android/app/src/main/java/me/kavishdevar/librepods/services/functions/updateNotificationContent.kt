@@ -1,0 +1,2 @@
+    fun updateNotificationContent(
+        connected: Boolean,

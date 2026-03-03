@@ -1,0 +1,2 @@
+    fun isCustomAction(
+        action: StemAction?,
