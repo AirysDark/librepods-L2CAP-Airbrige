@@ -12,7 +12,7 @@ android {
 
     ndkVersion = "26.3.11579264"
 
-    // ✅ FIX duplicate native lib merge
+    // Fix duplicate native lib merge (AGP 8 + NDK 26)
     packaging {
         jniLibs {
             useLegacyPackaging = true
@@ -38,17 +38,22 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
 
     buildFeatures {
         compose = true
         viewBinding = true
+    }
+
+    // 🔥 REQUIRED for Kotlin 2.1.x + Compose
+    composeOptions {
+        kotlinCompilerExtensionVersion = "2.1.0"
     }
 
     androidResources {
