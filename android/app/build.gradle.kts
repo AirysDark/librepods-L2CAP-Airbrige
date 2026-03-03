@@ -37,13 +37,14 @@ android {
         }
     }
 
+    // 🔥 REQUIRED: Java 21 for Kotlin 2.1.x + Compose 2025 BOM
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
 
     buildFeatures {
@@ -51,7 +52,7 @@ android {
         viewBinding = true
     }
 
-    // 🔥 REQUIRED for Kotlin 2.1.x + Compose
+    // Must exactly match Kotlin version (2.1.10)
     composeOptions {
         kotlinCompilerExtensionVersion = "2.1.10"
     }
