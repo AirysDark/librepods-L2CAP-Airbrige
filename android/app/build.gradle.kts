@@ -53,7 +53,7 @@ android {
 
     // 🔥 REQUIRED for Kotlin 2.1.x + Compose
     composeOptions {
-        kotlinCompilerExtensionVersion = "2.1.0"
+        kotlinCompilerExtensionVersion = "2.1.10"
     }
 
     androidResources {
