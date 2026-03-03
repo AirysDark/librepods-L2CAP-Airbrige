@@ -12,10 +12,10 @@ android {
 
     ndkVersion = "26.3.11579264"
 
-    // Fix duplicate native lib merge (AGP 8 + NDK 26)
+    // ✅ Correct fix for duplicate native lib merge
     packaging {
         jniLibs {
-            useLegacyPackaging = true
+            pickFirsts += "lib/**/libl2c_fcr_hook.so"
         }
     }
 
@@ -37,7 +37,6 @@ android {
         }
     }
 
-    // 🔥 REQUIRED: Java 21 for Kotlin 2.1.x + Compose 2025 BOM
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -52,7 +51,6 @@ android {
         viewBinding = true
     }
 
-    // Must exactly match Kotlin version (2.1.10)
     composeOptions {
         kotlinCompilerExtensionVersion = "2.1.10"
     }
@@ -63,7 +61,7 @@ android {
 
     externalNativeBuild {
         cmake {
-            path = file("app/src/main/cpp/CMakeLists.txt")
+            path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
         }
     }
@@ -81,20 +79,22 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+
     implementation(libs.annotations)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.haze)
     implementation(libs.haze.materials)
     implementation(libs.androidx.dynamicanimation)
-    implementation(libs.androidx.compose.ui)
-    debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.foundation.layout)
+
     implementation(libs.aboutlibraries)
     implementation(libs.aboutlibraries.compose.m3)
 
