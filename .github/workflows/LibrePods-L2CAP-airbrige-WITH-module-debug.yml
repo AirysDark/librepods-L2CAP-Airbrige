@@ -34,12 +34,37 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build debug APK
+      # 🔥 Build with full log capture (never loses output)
+      - name: Build debug APK with full log capture
         working-directory: android
         run: |
+          mkdir -p build-logs
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
 
+          set +e
+          ./gradlew assembleDebug --stacktrace --info > build-logs/build.log 2>&1
+          EXIT_CODE=$?
+          set -e
+
+          echo "GRADLE_EXIT_CODE=$EXIT_CODE" >> $GITHUB_ENV
+          exit 0
+
+      # ✅ Always upload log even if build fails
+      - name: Upload build log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: android/build-logs/build.log
+
+      # ❌ Fail job properly if Gradle failed
+      - name: Fail job if Gradle failed
+        if: env.GRADLE_EXIT_CODE != '0'
+        run: |
+          echo "Gradle failed. See build-log artifact."
+          exit 1
+
+      # Only runs if Gradle succeeded
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -56,13 +81,6 @@ jobs:
         with:
           name: magisk-module
           path: btl2capfix.zip
-
-      - name: Print output tree
-        run: |
-          echo "=== APK FILES ==="
-          find android -name "*.apk"
-          echo "=== ZIP FILES ==="
-          find . -name "*.zip"
 
 
   nightly-release:
@@ -85,6 +103,11 @@ jobs:
           name: magisk-module
           path: ./artifacts
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-log
+          path: ./artifacts/logs
+
       - name: Export APK name
         run: echo "APK_NAME=LibrePods-${GITHUB_SHA::7}.apk" >> $GITHUB_ENV
 
@@ -104,6 +127,7 @@ jobs:
           gh release create nightly \
             "./$APK_NAME" \
             "./btl2capfix.zip" \
+            "./artifacts/logs/build.log" \
             -p \
             -t "Nightly Release" \
             --generate-notes
