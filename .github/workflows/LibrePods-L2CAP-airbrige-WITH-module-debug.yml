@@ -45,14 +45,14 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # 🔥 Build from explicit path (NO working-directory)
+      # ✅ FORCE Gradle to use android/ as project root
       - name: Build debug APK with full log capture
         run: |
           mkdir -p android/build-logs
           chmod +x android/gradlew
 
           set +e
-          ./android/gradlew assembleDebug --stacktrace --info > android/build-logs/build.log 2>&1
+          ./android/gradlew --project-dir android assembleDebug --stacktrace --info > android/build-logs/build.log 2>&1
           EXIT_CODE=$?
           set -e
 
