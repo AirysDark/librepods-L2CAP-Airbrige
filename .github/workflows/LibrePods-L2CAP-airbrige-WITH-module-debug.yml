@@ -32,9 +32,19 @@ jobs:
           distribution: zulu
           java-version: 21
 
+      # 🔥 Install Android SDK
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android 36 SDK components
+        run: |
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-36"
+          sdkmanager "build-tools;36.0.0"
+          yes | sdkmanager --licenses
+
       - uses: gradle/actions/setup-gradle@v4
 
-      # 🔥 Build with full log capture (never loses output)
+      # 🔥 Build with full log capture
       - name: Build debug APK with full log capture
         working-directory: android
         run: |
@@ -49,7 +59,7 @@ jobs:
           echo "GRADLE_EXIT_CODE=$EXIT_CODE" >> $GITHUB_ENV
           exit 0
 
-      # ✅ Always upload log even if build fails
+      # ✅ Always upload log
       - name: Upload build log artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -57,14 +67,14 @@ jobs:
           name: build-log
           path: android/build-logs/build.log
 
-      # ❌ Fail job properly if Gradle failed
+      # ❌ Fail properly if Gradle failed
       - name: Fail job if Gradle failed
         if: env.GRADLE_EXIT_CODE != '0'
         run: |
           echo "Gradle failed. See build-log artifact."
           exit 1
 
-      # Only runs if Gradle succeeded
+      # Only runs if build succeeded
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
