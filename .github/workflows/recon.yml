@@ -1,4 +1,4 @@
-name: Deep Recon Scan
+name: Ultra Deep Recon (Binary + Native + Gradle)
 
 on:
   workflow_dispatch:
@@ -12,50 +12,105 @@ jobs:
         with:
           submodules: true
 
-      - name: Run Recon Scan
+      - name: Install Tools
         run: |
-          echo "=========================================" > recon.txt
-          echo " LibrePods Full Recon Report" >> recon.txt
-          echo "=========================================" >> recon.txt
+          sudo apt-get update -y
+          sudo apt-get install -y tree unzip file binutils
 
-          echo -e "\n=== ROOT STRUCTURE ===" >> recon.txt
-          ls -la >> recon.txt
+      - name: Run Ultra Deep Scan
+        run: |
+          REPORT="ultra_recon.txt"
+          echo "=========================================" > $REPORT
+          echo " ULTRA DEEP RECON REPORT" >> $REPORT
+          echo "=========================================" >> $REPORT
 
-          if [ -d "android" ]; then
-            echo -e "\n=== ANDROID DIRECTORY (Depth 2) ===" >> recon.txt
-            find android -maxdepth 2 >> recon.txt
+          echo -e "\n=== SYSTEM INFO ===" >> $REPORT
+          uname -a >> $REPORT
+          java -version >> $REPORT 2>&1 || true
+
+          echo -e "\n=== FULL FILE TREE ===" >> $REPORT
+          tree -a -L 8 >> $REPORT || true
+
+          echo -e "\n=== GRADLE WRAPPER INFO ===" >> $REPORT
+          find . -name "gradle-wrapper.properties" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+
+          echo -e "\n=== SETTINGS.GRADLE CONTENT ===" >> $REPORT
+          find . -name "settings.gradle*" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+
+          echo -e "\n=== BUILD.GRADLE CONTENT ===" >> $REPORT
+          find . -name "build.gradle*" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+
+          echo -e "\n=== MANIFEST FILES ===" >> $REPORT
+          find . -name "AndroidManifest.xml" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+
+          echo -e "\n=== CMAKE FILES ===" >> $REPORT
+          find . -name "CMakeLists.txt" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+
+          echo -e "\n=== AAR FILES FOUND ===" >> $REPORT
+          find . -name "*.aar" >> $REPORT
+
+          echo -e "\n=== EXTRACTING AAR FILES ===" >> $REPORT
+          mkdir aar_extract
+          for f in $(find . -name "*.aar"); do
+            NAME=$(basename "$f" .aar)
+            mkdir -p aar_extract/$NAME
+            unzip -q "$f" -d aar_extract/$NAME
+            echo "\nAAR: $f" >> $REPORT
+            find aar_extract/$NAME -name "*.so" >> $REPORT
+          done
+
+          echo -e "\n=== ALL NATIVE LIBS (.so) ===" >> $REPORT
+          find . -name "*.so" >> $REPORT
+
+          echo -e "\n=== ELF ARCHITECTURE INFO ===" >> $REPORT
+          for f in $(find . -name "*.so"); do
+            echo -e "\n$f" >> $REPORT
+            file "$f" >> $REPORT
+          done
+
+          echo -e "\n=== DUPLICATE NATIVE LIB CHECK ===" >> $REPORT
+          find . -name "*.so" | sed 's#.*/##' | sort | uniq -d >> $REPORT
+
+          echo -e "\n=== JAR FILES FOUND ===" >> $REPORT
+          find . -name "*.jar" >> $REPORT
+
+          echo -e "\n=== EXTRACTING JAR FILES ===" >> $REPORT
+          mkdir jar_extract
+          for f in $(find . -name "*.jar"); do
+            NAME=$(basename "$f" .jar)
+            mkdir -p jar_extract/$NAME
+            unzip -q "$f" -d jar_extract/$NAME
+            echo "\nJAR: $f" >> $REPORT
+            grep -Rni "l2cap" jar_extract/$NAME >> $REPORT || true
+            grep -Rni "BluetoothSocket" jar_extract/$NAME >> $REPORT || true
+          done
+
+          echo -e "\n=== SOURCE SEARCH: L2CAP ===" >> $REPORT
+          grep -Rni "l2cap" . >> $REPORT || true
+
+          echo -e "\n=== SOURCE SEARCH: BluetoothSocket ===" >> $REPORT
+          grep -Rni "BluetoothSocket" . >> $REPORT || true
+
+          echo -e "\n=== SOURCE SEARCH: android.bluetooth ===" >> $REPORT
+          grep -Rni "android.bluetooth" . >> $REPORT || true
+
+          echo -e "\n=== GRADLE VERSION CHECK ===" >> $REPORT
+          if [ -f android/gradlew ]; then
+            chmod +x android/gradlew
+            ./android/gradlew --version >> $REPORT 2>&1 || true
           fi
 
-          echo -e "\n=== settings.gradle(.kts) ===" >> recon.txt
-          find . -name "settings.gradle*" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> recon.txt
+          echo -e "\n=== DEPENDENCY TREE (if android exists) ===" >> $REPORT
+          if [ -f android/gradlew ]; then
+            ./android/gradlew --project-dir android app:dependencies >> $REPORT 2>&1 || true
+          fi
 
-          echo -e "\n=== AndroidManifest.xml Locations ===" >> recon.txt
-          find . -name "AndroidManifest.xml" >> recon.txt
+          echo -e "\n=========================================" >> $REPORT
+          echo " ULTRA RECON COMPLETE" >> $REPORT
+          echo "=========================================" >> $REPORT
 
-          echo -e "\n=== build.gradle(.kts) Files ===" >> recon.txt
-          find . -name "build.gradle*" >> recon.txt
-
-          echo -e "\n=== SEARCH: L2CAP ===" >> recon.txt
-          grep -Rni "l2cap" . >> recon.txt || true
-
-          echo -e "\n=== SEARCH: createL2cap ===" >> recon.txt
-          grep -Rni "createL2cap" . >> recon.txt || true
-
-          echo -e "\n=== SEARCH: BluetoothSocket ===" >> recon.txt
-          grep -Rni "BluetoothSocket" . >> recon.txt || true
-
-          echo -e "\n=== SEARCH: PSM ===" >> recon.txt
-          grep -Rni "psm" . >> recon.txt || true
-
-          echo -e "\n=== SEARCH: android.bluetooth imports ===" >> recon.txt
-          grep -Rni "android.bluetooth" . >> recon.txt || true
-
-          echo -e "\n=========================================" >> recon.txt
-          echo " Recon Complete" >> recon.txt
-          echo "=========================================" >> recon.txt
-
-      - name: Upload Recon Report
+      - name: Upload Ultra Recon Report
         uses: actions/upload-artifact@v4
         with:
-          name: recon-report
-          path: recon.txt
+          name: ultra-deep-recon-report
+          path: ultra_recon.txt
