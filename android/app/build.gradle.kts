@@ -54,7 +54,7 @@ android {
 
     // Must exactly match Kotlin version (2.1.10)
     composeOptions {
-        kotlinCompilerExtensionVersion = "2.1.10"
+        kotlinCompilerExtensionVersion = "2.1.0"
     }
 
     androidResources {
