@@ -23,67 +23,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: Setup Java 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: zulu
           java-version: 21
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
 
-      - name: Install Android SDK components
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-34"
-          sdkmanager "build-tools;34.0.0"
-
-      - name: Accept SDK licenses
-        run: yes | sdkmanager --licenses
-
-      - name: Setup Gradle cache
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Verify gradlew exists
-        run: |
-          ls -la android/gradlew
-          chmod +x android/gradlew
-
-      - name: Build debug APK with log capture
+      - name: Build debug APK
         working-directory: android
         run: |
-          mkdir -p build-logs
-          ./gradlew assembleDebug --stacktrace --info | tee build-logs/log.txt
-
-      - name: Verify APK generated
-        id: find_apk
-        run: |
-          APK_PATH=$(find android -type f -name "*debug*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            echo "❌ No APK found!"
-            echo "===== OUTPUT TREE ====="
-            find android -type d -name outputs || true
-            exit 1
-          fi
-          echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
-          echo "Found APK: $APK_PATH"
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          path: ${{ env.APK_PATH }}
-
-      - name: Upload build log artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: android/build-logs/log.txt
+          path: android/app/build/outputs/apk/**/*.apk
 
       - name: Build Magisk module
         run: |
@@ -105,26 +66,17 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download APK
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: debug-apk
           path: ./artifacts
 
-      - name: Download Magisk module
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: magisk-module
           path: ./artifacts
-
-      - name: Download build log
-        uses: actions/download-artifact@v4
-        with:
-          name: build-log
-          path: ./artifacts/logs
 
       - name: Export APK name
         run: echo "APK_NAME=LibrePods-${GITHUB_SHA::7}.apk" >> $GITHUB_ENV
@@ -145,7 +97,6 @@ jobs:
           gh release create nightly \
             "./$APK_NAME" \
             "./btl2capfix.zip" \
-            "./artifacts/logs/log.txt" \
             -p \
             -t "Nightly Release" \
             --generate-notes
