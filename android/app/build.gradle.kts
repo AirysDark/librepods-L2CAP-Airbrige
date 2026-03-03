@@ -14,42 +14,77 @@ android {
         applicationId = "me.kavishdevar.librepods"
         minSdk = 33
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.2.0"
+
+        // 🔥 CI VERSION INJECTION SUPPORT
+        val ciVersionCode = project.findProperty("ciVersionCode")?.toString()?.toIntOrNull()
+        val ciVersionName = project.findProperty("ciVersionName")?.toString()
+
+        versionCode = ciVersionCode ?: 9
+        versionName = ciVersionName ?: "0.2.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            if (System.getenv("CI") == "true") {
+                storeFile = file(System.getenv("KEYSTORE_FILE"))
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
-        release {
+        debug {
             isMinifyEnabled = false
+        }
+
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
     buildFeatures {
         compose = true
         viewBinding = true
     }
+
     androidResources {
         generateLocaleConfig = true
     }
+
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
         }
     }
+
     sourceSets {
         getByName("main") {
             res.srcDirs("src/main/res", "src/main/res-apple")
+        }
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
 }
@@ -72,19 +107,22 @@ dependencies {
     implementation(libs.haze.materials)
     implementation(libs.androidx.dynamicanimation)
     implementation(libs.androidx.compose.ui)
-    debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.aboutlibraries)
     implementation(libs.aboutlibraries.compose.m3)
-    // compileOnly(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar"))))
-    // implementation(fileTree(mapOf("dir" to "lib", "include" to listOf("*.aar"))))
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // Xposed
     compileOnly(files("libs/libxposed-api-100.aar"))
+
+    // Backdrop
     debugImplementation(files("libs/backdrop-debug.aar"))
     releaseImplementation(files("libs/backdrop-release.aar"))
 }
 
 aboutLibraries {
-    export{
+    export {
         prettyPrint = true
         excludeFields = listOf("generated")
         outputFile = file("src/main/res/raw/aboutlibraries.json")
