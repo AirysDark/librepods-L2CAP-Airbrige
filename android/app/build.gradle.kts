@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "me.kavishdevar.librepods"
-    compileSdk = 36
+    compileSdk = 37
 
     ndkVersion = "26.3.11579264"
 
@@ -22,7 +22,7 @@ android {
     defaultConfig {
         applicationId = "me.kavishdevar.librepods"
         minSdk = 33
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 9
         versionName = "0.2.0"
     }
