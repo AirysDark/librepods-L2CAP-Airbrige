@@ -15,7 +15,7 @@ jobs:
       - name: Install Tools
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y tree unzip file binutils
+          sudo apt-get install -y tree unzip file binutils coreutils
 
       - name: Run Ultra Deep Scan
         run: |
@@ -32,57 +32,61 @@ jobs:
           tree -a -L 8 >> $REPORT || true
 
           echo -e "\n=== GRADLE WRAPPER INFO ===" >> $REPORT
-          find . -name "gradle-wrapper.properties" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+          find . -name "gradle-wrapper.properties" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT || true
 
           echo -e "\n=== SETTINGS.GRADLE CONTENT ===" >> $REPORT
-          find . -name "settings.gradle*" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+          find . -name "settings.gradle*" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT || true
 
           echo -e "\n=== BUILD.GRADLE CONTENT ===" >> $REPORT
-          find . -name "build.gradle*" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+          find . -name "build.gradle*" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT || true
 
           echo -e "\n=== MANIFEST FILES ===" >> $REPORT
-          find . -name "AndroidManifest.xml" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+          find . -name "AndroidManifest.xml" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT || true
 
           echo -e "\n=== CMAKE FILES ===" >> $REPORT
-          find . -name "CMakeLists.txt" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT
+          find . -name "CMakeLists.txt" -exec sh -c 'echo "\nFILE: $1"; cat "$1"' _ {} \; >> $REPORT || true
 
           echo -e "\n=== AAR FILES FOUND ===" >> $REPORT
-          find . -name "*.aar" >> $REPORT
+          find . -name "*.aar" >> $REPORT || true
 
           echo -e "\n=== EXTRACTING AAR FILES ===" >> $REPORT
-          mkdir aar_extract
-          for f in $(find . -name "*.aar"); do
-            NAME=$(basename "$f" .aar)
-            mkdir -p aar_extract/$NAME
-            unzip -q "$f" -d aar_extract/$NAME
-            echo "\nAAR: $f" >> $REPORT
-            find aar_extract/$NAME -name "*.so" >> $REPORT
+          rm -rf aar_extract
+          mkdir -p aar_extract
+
+          find . -name "*.aar" -print0 | while IFS= read -r -d '' f; do
+            HASH=$(echo "$f" | sha1sum | cut -c1-12)
+            mkdir -p aar_extract/$HASH
+            unzip -oq "$f" -d aar_extract/$HASH
+            echo -e "\nAAR: $f" >> $REPORT
+            find aar_extract/$HASH -name "*.so" >> $REPORT || true
           done
 
           echo -e "\n=== ALL NATIVE LIBS (.so) ===" >> $REPORT
-          find . -name "*.so" >> $REPORT
+          find . -name "*.so" >> $REPORT || true
 
           echo -e "\n=== ELF ARCHITECTURE INFO ===" >> $REPORT
-          for f in $(find . -name "*.so"); do
+          find . -name "*.so" -print0 | while IFS= read -r -d '' f; do
             echo -e "\n$f" >> $REPORT
-            file "$f" >> $REPORT
+            file "$f" >> $REPORT || true
           done
 
           echo -e "\n=== DUPLICATE NATIVE LIB CHECK ===" >> $REPORT
-          find . -name "*.so" | sed 's#.*/##' | sort | uniq -d >> $REPORT
+          find . -name "*.so" | sed 's#.*/##' | sort | uniq -d >> $REPORT || true
 
           echo -e "\n=== JAR FILES FOUND ===" >> $REPORT
-          find . -name "*.jar" >> $REPORT
+          find . -name "*.jar" >> $REPORT || true
 
           echo -e "\n=== EXTRACTING JAR FILES ===" >> $REPORT
-          mkdir jar_extract
-          for f in $(find . -name "*.jar"); do
-            NAME=$(basename "$f" .jar)
-            mkdir -p jar_extract/$NAME
-            unzip -q "$f" -d jar_extract/$NAME
-            echo "\nJAR: $f" >> $REPORT
-            grep -Rni "l2cap" jar_extract/$NAME >> $REPORT || true
-            grep -Rni "BluetoothSocket" jar_extract/$NAME >> $REPORT || true
+          rm -rf jar_extract
+          mkdir -p jar_extract
+
+          find . -name "*.jar" -print0 | while IFS= read -r -d '' f; do
+            HASH=$(echo "$f" | sha1sum | cut -c1-12)
+            mkdir -p jar_extract/$HASH
+            unzip -oq "$f" -d jar_extract/$HASH
+            echo -e "\nJAR: $f" >> $REPORT
+            grep -Rni "l2cap" jar_extract/$HASH >> $REPORT || true
+            grep -Rni "BluetoothSocket" jar_extract/$HASH >> $REPORT || true
           done
 
           echo -e "\n=== SOURCE SEARCH: L2CAP ===" >> $REPORT
@@ -100,7 +104,7 @@ jobs:
             ./android/gradlew --version >> $REPORT 2>&1 || true
           fi
 
-          echo -e "\n=== DEPENDENCY TREE (if android exists) ===" >> $REPORT
+          echo -e "\n=== DEPENDENCY TREE ===" >> $REPORT
           if [ -f android/gradlew ]; then
             ./android/gradlew --project-dir android app:dependencies >> $REPORT 2>&1 || true
           fi
