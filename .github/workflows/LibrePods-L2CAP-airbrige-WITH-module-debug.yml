@@ -35,11 +35,14 @@ jobs:
       # 🔥 Install Android SDK
       - uses: android-actions/setup-android@v3
 
-      - name: Install Android 36 SDK components
+      # 🔥 Install required SDK components (INCLUDING NDK + CMAKE)
+      - name: Install Android SDK + NDK + CMake
         run: |
           sdkmanager "platform-tools"
           sdkmanager "platforms;android-36"
           sdkmanager "build-tools;36.0.0"
+          sdkmanager "ndk;26.3.11579264"
+          sdkmanager "cmake;3.22.1"
           yes | sdkmanager --licenses
 
       - uses: gradle/actions/setup-gradle@v4
@@ -59,7 +62,7 @@ jobs:
           echo "GRADLE_EXIT_CODE=$EXIT_CODE" >> $GITHUB_ENV
           exit 0
 
-      # ✅ Always upload log
+      # ✅ Always upload build log
       - name: Upload build log artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -67,7 +70,7 @@ jobs:
           name: build-log
           path: android/build-logs/build.log
 
-      # ❌ Fail properly if Gradle failed
+      # ❌ Fail job properly if Gradle failed
       - name: Fail job if Gradle failed
         if: env.GRADLE_EXIT_CODE != '0'
         run: |
