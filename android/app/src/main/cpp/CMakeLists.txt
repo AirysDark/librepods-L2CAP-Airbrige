@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.22.1)
 
-project(l2c_fcr_hook)
+project("l2c_fcr_hook")
+set(CMAKE_CXX_STANDARD 23)
 
-set(CMAKE_CXX_STANDARD 17)
+add_library(${CMAKE_PROJECT_NAME} SHARED
+        l2c_fcr_hook.cpp
+        l2c_fcr_hook.h)
 
-add_library(l2c_fcr_hook SHARED
-        l2c_fcr_hook.cpp)
-
-target_link_libraries(l2c_fcr_hook
+target_link_libraries(${CMAKE_PROJECT_NAME}
         android
         log)
