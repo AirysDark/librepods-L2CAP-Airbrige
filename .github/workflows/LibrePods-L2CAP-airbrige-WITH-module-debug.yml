@@ -57,6 +57,13 @@ jobs:
           name: magisk-module
           path: btl2capfix.zip
 
+      - name: Print output tree
+        run: |
+          echo "=== APK FILES ==="
+          find android -name "*.apk"
+          echo "=== ZIP FILES ==="
+          find . -name "*.zip"
+
 
   nightly-release:
     runs-on: ubuntu-latest
@@ -100,10 +107,3 @@ jobs:
             -p \
             -t "Nightly Release" \
             --generate-notes
-
-                  - name: Print output tree
-          run: |
-           echo "=== APK FILES ==="
-           find android -name "*.apk"
-           echo "=== ZIP FILES ==="
-           find . -name "*.zip"
